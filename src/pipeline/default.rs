@@ -92,6 +92,14 @@ impl DefaultColorImpl {
     pub const fn alpha(&self) -> u8 {
         (self.rgba & 0b11111111) as u8
     }
+
+    pub const fn get_abgr(&self) -> u32 {
+        (((self.alpha() as u32) << 24) | ((self.blue() as u32) << 16) | ((self.green() as u32) << 8) | self.red() as u32)
+    }
+
+    pub const fn get_argb(&self) -> u32 {
+        (((self.alpha() as u32) << 24) | ((self.red() as u32) << 16) | ((self.green() as u32) << 8) | self.blue() as u32)
+    }
 }
 
 pub struct DirectVertexPass {

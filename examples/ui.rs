@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use fur::pipeline::drawing::{TriangleDrawCommand, PrimitiveTriangle};
+use fur::pipeline::drawing::{TriangleDrawCommand, PrimitiveTriangle, DrawCommand};
 use fur::{
     color::Color,
     display::{Display, DisplayDriver},
@@ -8,7 +8,7 @@ use fur::{
 use minifb::{Key, Window, WindowOptions};
 use spin::RwLock;
 use fur::pipeline::default::{DefaultColorImpl, DefaultVertexImpl, DirectFragmentPass, DirectVertexPass, Pipeline};
-use fur::pipeline::pipeline::{Matrix4f, Vector4f, Viewport};
+use fur::pipeline::pipeline::{Matrix4f, Vector4f, Vertex, VertexPass, Viewport};
 
 const WIDTH: usize = 640;
 const HEIGHT: usize = 360;
@@ -46,6 +46,16 @@ impl DisplayDriver for DrawBuffer {
         }
     }
 
+    fn write_data(&mut self, x: usize, y: usize, width: usize, height: usize, pixels: &[u32]) {
+        for dx in 0..width {
+            for dy in 0..height {
+                let t_x = x + dx;
+                let t_y = y + dy;
+                self.buffer[t_y * WIDTH + t_x] = pixels[dy * width + dx];
+            }
+        }
+    }
+
     fn write_at(&mut self, x: usize, y: usize, color: u32) {
         todo!()
     }
@@ -55,17 +65,23 @@ fn main() {
     let buffer = Arc::new(RwLock::new(DrawBuffer::new()));
 
     let pipeline = Pipeline::new(
+        // Viewport::new(0, 0, WIDTH, HEIGHT, 0.0, 0.0),
+        // DirectVertexPass::new(Matrix4f::identity()),
         Viewport::new(0, 0, WIDTH, HEIGHT, 100.0, 3000.0),
-        DirectVertexPass::new(Matrix4f::new_orthographic(0.0, WIDTH as f32, HEIGHT as f32, 0.0, 100.0, 3000.0)),
+        DirectVertexPass::new(Matrix4f::new_orthographic(0.0, WIDTH as f32, 0.0, HEIGHT as f32, 100.0, 3000.0)),
         DirectFragmentPass::new(DefaultColorImpl::new(255, 255, 255, 255))
     );
-    let draw_call = TriangleDrawCommand::new(pipeline, vec![PrimitiveTriangle::new([
-        DefaultVertexImpl::new(Vector4f::new(10.0, 10.0, 0.0, 1.0), DefaultColorImpl::new(255, 0, 0, 255)),
-        DefaultVertexImpl::new(Vector4f::new(10.0, 100.0, 0.0, 1.0), DefaultColorImpl::new(0, 255, 0, 255)),
-        DefaultVertexImpl::new(Vector4f::new(100.0, 100.0, 0.0, 1.0), DefaultColorImpl::new(0, 0, 255, 255))
+    let draw_cmd = TriangleDrawCommand::new(pipeline, vec![PrimitiveTriangle::new([
+        DefaultVertexImpl::new(Vector4f::new(WIDTH as f32 / 2.0, 10.0, 0.0, 1.0), DefaultColorImpl::new(255, 0, 0, 255)),
+        DefaultVertexImpl::new(Vector4f::new(WIDTH as f32 - 10.0, HEIGHT as f32 - 10.0, 0.0, 1.0), DefaultColorImpl::new(0, 0, 255, 255)),
+        DefaultVertexImpl::new(Vector4f::new(10.0, HEIGHT as f32 - 10.0, 0.0, 1.0), DefaultColorImpl::new(0, 255, 0, 255)),
     ])]);
 
-    let (regional_buffer, region) = draw_call.draw();
+    let (regional_buffer, region, size) = draw_cmd.execute();
+    // let res = pipeline.vertex_pass.transform(
+    //     &DefaultVertexImpl::new(Vector4f::new(10.0, 10.0, 0.0, 1.0), DefaultColorImpl::new(255, 0, 0, 255)));
+    // println!("{:?}", res.position());
+    println!("{:?}, {}", region, size);
 
     let mut display = Display::new(buffer.clone(), WIDTH, HEIGHT);
 
@@ -94,7 +110,7 @@ fn main() {
     //display.flush();
 
     let pixels = (0..WIDTH * HEIGHT)
-        .map(|_| Color::new_argb(0, 0x00, 0x00, 0xff))
+        .map(|_| Color::new_argb(0, 0, 0, 0))
         .collect::<Vec<_>>();
 
     let background_layer = display.create_layer(WIDTH, HEIGHT, 0, 0);
@@ -112,5 +128,10 @@ fn main() {
         window
             .update_with_buffer(&buffer.read().buffer, WIDTH, HEIGHT)
             .unwrap();
+
+        buffer.write().write_data(
+            region.x as usize, region.y as usize,
+            (region.z - region.x) as usize, (region.w - region.y) as usize,
+            &regional_buffer.buffer)
     }
 }

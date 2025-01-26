@@ -64,6 +64,7 @@ pub trait DisplayDriver {
     fn read(&self, x: usize, y: usize, width: usize, height: usize, pixels: &mut [Color]);
     /// The same as `read`, but it writes pixels.
     fn write(&mut self, x: usize, y: usize, width: usize, height: usize, pixels: &[Color]);
+    fn write_data(&mut self, x: usize, y: usize, width: usize, height: usize, pixels: &[u32]);
     fn write_at(
         &mut self,
         x: usize,
@@ -109,6 +110,10 @@ impl DisplayDriver for Display {
         assert!(y < self.height);
 
         self.driver.write().write(x, y, width, height, pixels);
+    }
+
+    fn write_data(&mut self, x: usize, y: usize, width: usize, height: usize, pixels: &[u32]) {
+        self.driver.write().write_data(x, y, width, height, pixels);
     }
 
     fn write_at(&mut self, x: usize, y: usize, color: u32) {

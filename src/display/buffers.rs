@@ -4,7 +4,7 @@ use crate::{color::Color, display::DisplayDriver, pixel::PixelFormat};
 
 #[allow(dead_code)]
 pub struct DrawBuffer {
-    buffer: Vec<u32>,
+    pub buffer: Vec<u32>,
     width: usize,
     height: usize,
     pixel_format: PixelFormat,
@@ -68,6 +68,19 @@ impl DisplayDriver for DrawBuffer {
         }
     }
 
+    fn write_data(&mut self, x: usize, y: usize, width: usize, height: usize, pixels: &[u32]) {
+        assert!(x < self.width);
+        assert!(y < self.height);
+
+        for dx in 0..width {
+            for dy in 0..height {
+                let t_x = x + dx;
+                let t_y = y + dy;
+                self.buffer[t_y * self.width + t_x] = pixels[dy * width + dx];
+            }
+        }
+    }
+
     fn write_at(
         &mut self,
         x: usize,
@@ -77,7 +90,7 @@ impl DisplayDriver for DrawBuffer {
         assert!(x < self.width);
         assert!(y < self.height);
 
-        self.buffer[y * self.width + y] = color;
+        self.buffer[y * self.width + x] = color;
     }
 }
 
@@ -123,6 +136,10 @@ impl DisplayDriver for ColorBuffer {
                 self.buffer[t_y * self.width + t_x] = pixels[dy * width + dx].clone();
             }
         }
+    }
+
+    fn write_data(&mut self, x: usize, y: usize, width: usize, height: usize, pixels: &[u32]) {
+        todo!()
     }
 
     fn write_at(&mut self, x: usize, y: usize, color: u32) {
