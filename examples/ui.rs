@@ -11,13 +11,13 @@ const WIDTH: usize = 640;
 const HEIGHT: usize = 360;
 
 struct DrawBuffer {
-    buffer: Vec<u32>,
+    buffer: [u32;WIDTH * HEIGHT],
 }
 
 impl DrawBuffer {
     pub fn new() -> Self {
         Self {
-            buffer: vec![0; WIDTH * HEIGHT],
+            buffer: [0; WIDTH * HEIGHT],
         }
     }
 }
@@ -42,7 +42,7 @@ impl DisplayDriver for DrawBuffer {
             }
         }
     }
-    
+
     fn size(&self) -> (usize, usize) {
         (WIDTH, HEIGHT)
     }
@@ -64,19 +64,19 @@ fn main() {
     });
 
     window.set_target_fps(60);
-    
+
     let window_layer = display.create_layer(100, 50, 10, 10);
     let window_layer_mut = display.layer_mut(&window_layer).unwrap();
-    fur::window::Window::new(100, 50).draw(window_layer_mut);
+    fur::window::WindowBuilder::new(100, 50).draw(window_layer_mut);
 
-    let color =  Color::new_argb(0, 0x00, 0x00, 0xff);
+    let color = Color::new_argb(0, 0x00, 0x00, 0xff);
 
     let background_layer = display.create_layer(WIDTH, HEIGHT, 0, 0);
     display
         .layer_mut(&background_layer)
         .unwrap()
         .write(0, 0, WIDTH, HEIGHT, &color);
-    
+
     display.flush_all();
 
     display.put_upper_than(&window_layer, &background_layer);

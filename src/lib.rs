@@ -10,4 +10,5 @@ extern crate alloc;
 pub mod color;
 pub mod display;
 pub mod pixel;
+pub mod style;
 pub mod window;

@@ -188,9 +188,9 @@ impl Display {
                 let (x, y) = layer_data.position();
                 let (width, height) = layer_data.size();
                 if x >= x_range.0
-                    && !((x + width) < x_range.0)
+                    && (x + width) >= x_range.0
                     && y >= y_range.0
-                    && !((y + height) < y_range.0)
+                    && (y + height) >= y_range.0
                 {
                     for dx in 0..width {
                         for dy in 0..height {

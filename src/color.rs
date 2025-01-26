@@ -1,4 +1,4 @@
-use alloc::boxed::Box;
+use alloc::sync::Arc;
 
 /// This enum stores colors. \
 /// Supported formats:
@@ -13,7 +13,7 @@ pub enum Color {
     Rgb(u8, u8, u8),
     Argb(u8, u8, u8, u8),
     Bgra(u8, u8, u8, u8),
-    U8(Pallet, u8),
+    U8(Pallete, u8),
 }
 
 impl Color {
@@ -29,7 +29,7 @@ impl Color {
         Self::Bgra(blue, green, red, alpha)
     }
 
-    pub fn new_u8(pallet: Pallet, index: u8) -> Self {
+    pub fn new_u8(pallet: Pallete, index: u8) -> Self {
         Self::U8(pallet, index)
     }
 }
@@ -144,7 +144,7 @@ impl Color {
         (blue, green, red, alpha)
     }
 
-    pub fn as_u8(&self, pallet: &Pallet) -> Option<u8> {
+    pub fn as_u8(&self, pallet: &Pallete) -> Option<u8> {
         pallet.try_find_color(self.clone())
     }
 }
@@ -207,39 +207,39 @@ impl PartialEq for Color {
 /// This is the pallet for 256 color mode. \
 /// It stores 256 colors, and you can use them through the index.
 #[derive(Debug, Clone)]
-pub struct Pallet {
-    colors: [Box<Color>; 256],
+pub struct Pallete {
+    colors: Arc<[Color; 256]>,
 }
 
-impl Default for Pallet {
+impl Default for Pallete {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Pallet {
+impl Pallete {
     pub fn new() -> Self {
         Self {
-            colors: core::array::from_fn(|_| Box::new(Color::new_argb(0, 0xff, 0xff, 0xff))),
+            colors: Arc::new(core::array::from_fn(|_| Color::new_argb(0, 0xff, 0xff, 0xff))),
         }
     }
 }
 
-impl Pallet {
+impl Pallete {
     pub fn change_color(&mut self, index: u8, color: Color) -> &mut Self {
-        self.colors[index as usize] = Box::new(color);
+        Arc::make_mut(&mut self.colors)[index as usize] = color;
         self
     }
 
     pub fn get_color(&self, index: u8) -> Color {
-        *self.colors[index as usize].clone()
+        self.colors[index as usize].clone()
     }
 
     pub(crate) fn try_find_color(&self, required_color: Color) -> Option<u8> {
         self.colors
             .iter()
             .enumerate()
-            .find(|(_, color)| ***color == required_color)
+            .find(|(_, color)| **color == required_color)
             .map(|(id, _)| id as u8)
     }
 }

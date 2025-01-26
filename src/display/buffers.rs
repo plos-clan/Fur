@@ -49,14 +49,7 @@ impl DisplayDriver for DrawBuffer {
         }
     }
 
-    fn write(
-        &mut self,
-        x: usize,
-        y: usize,
-        width: usize,
-        height: usize,
-        color: &Color,
-    ) {
+    fn write(&mut self, x: usize, y: usize, width: usize, height: usize, color: &Color) {
         debug_assert!(x < self.width);
         debug_assert!(y < self.height);
 
@@ -64,8 +57,7 @@ impl DisplayDriver for DrawBuffer {
             for dy in 0..height {
                 let t_x = x + dx;
                 let t_y = y + dy;
-                self.buffer[t_y * self.width + t_x] =
-                    self.pixel_format.color_as_u32(color);
+                self.buffer[t_y * self.width + t_x] = self.pixel_format.color_as_u32(color);
             }
         }
     }
