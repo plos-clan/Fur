@@ -74,8 +74,12 @@ impl DisplayDriver for LayerData {
         y: usize,
         width: usize,
         height: usize,
-        pixels: &[crate::color::Color],
+        color: &crate::color::Color,
     ) {
-        self.color_buffer.write(x, y, width, height, pixels);
+        self.color_buffer.write(x, y, width, height, color);
+    }
+
+    fn size(&self) -> (usize, usize) {
+        (self.width, self.height)
     }
 }

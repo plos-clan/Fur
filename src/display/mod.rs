@@ -58,7 +58,9 @@ pub trait DisplayDriver {
     /// Read pixels from (x,y) to `pixels`, and you need to tell the width and the height.
     fn read(&self, x: usize, y: usize, width: usize, height: usize, pixels: &mut [Color]);
     /// The same as `read`, but it writes pixels.
-    fn write(&mut self, x: usize, y: usize, width: usize, height: usize, pixels: &[Color]);
+    fn write(&mut self, x: usize, y: usize, width: usize, height: usize, color: &Color);
+    /// Get the size of the display.
+    fn size(&self) -> (usize, usize);
 }
 
 /// The main structure of FUR. \
@@ -74,7 +76,8 @@ pub struct Display {
 
 impl Display {
     /// Create a new display with a display driver and the following width and height.
-    pub fn new(driver: Arc<RwLock<dyn DisplayDriver>>, width: usize, height: usize) -> Self {
+    pub fn new(driver: Arc<RwLock<dyn DisplayDriver>>) -> Self {
+        let (width, height) = driver.read().size();
         Self {
             driver,
             width,
@@ -87,17 +90,21 @@ impl Display {
 
 impl DisplayDriver for Display {
     fn read(&self, x: usize, y: usize, width: usize, height: usize, pixels: &mut [Color]) {
-        assert!(x < self.width);
-        assert!(y < self.height);
+        debug_assert!(x < self.width);
+        debug_assert!(y < self.height);
 
         self.driver.read().read(x, y, width, height, pixels);
     }
 
-    fn write(&mut self, x: usize, y: usize, width: usize, height: usize, pixels: &[Color]) {
-        assert!(x < self.width);
-        assert!(y < self.height);
+    fn write(&mut self, x: usize, y: usize, width: usize, height: usize, color: &Color) {
+        debug_assert!(x < self.width);
+        debug_assert!(y < self.height);
 
-        self.driver.write().write(x, y, width, height, pixels);
+        self.driver.write().write(x, y, width, height, color);
+    }
+
+    fn size(&self) -> (usize, usize) {
+        (self.width, self.height)
     }
 }
 
@@ -152,16 +159,24 @@ impl Display {
                 let layer_data = self.layer(layer).unwrap();
                 let (x, y) = layer_data.position();
                 let (width, height) = layer_data.size();
-                
-                let mut pixels = alloc::vec![Color::new_rgb(0, 0, 0); width * height];
-                layer_data.read(0, 0, width, height, &mut pixels);
-                
-                let mut base_pixels = alloc::vec![Color::new_rgb(0, 0, 0); width * height];
-                self.driver.read().read(x, y, width, height, &mut base_pixels);
-                
-                let pixels = pixels.iter().enumerate().map(|(id, color)| base_pixels[id].mix(color)).collect::<Vec<_>>();
-                
-                self.driver.write().write(x, y, width, height, &pixels);
+
+                for dx in 0..width {
+                    for dy in 0..height {
+                        let t_x = dx + x;
+                        let t_y = dy + y;
+
+                        let mut color = [Color::new_rgb(0, 0, 0)];
+                        layer_data.read(dx, dy, 1, 1, &mut color);
+                        let color = color[0].clone();
+
+                        let mut base_color = [Color::new_rgb(0, 0, 0)];
+                        self.driver.read().read(t_x, t_y, 1, 1, &mut base_color);
+                        let base_color = base_color[0].clone();
+
+                        let color = base_color.mix(&color);
+                        self.driver.write().write(t_x, t_y, 1, 1, &color);
+                    }
+                }
             }
         }
     }
@@ -173,13 +188,27 @@ impl Display {
                 let (x, y) = layer_data.position();
                 let (width, height) = layer_data.size();
                 if x >= x_range.0
-                    && (x + width) < x_range.1
+                    && !((x + width) < x_range.0)
                     && y >= y_range.0
-                    && (y + height) < y_range.1
+                    && !((y + height) < y_range.0)
                 {
-                    let mut pixels = alloc::vec![Color::new_rgb(0, 0, 0); width * height];
-                    layer_data.read(0, 0, width, height, &mut pixels);
-                    self.driver.write().write(x, y, width, height, &pixels);
+                    for dx in 0..width {
+                        for dy in 0..height {
+                            let t_x = dx + x;
+                            let t_y = dy + y;
+
+                            let mut color = [Color::new_rgb(0, 0, 0)];
+                            layer_data.read(dx, dy, 1, 1, &mut color);
+                            let color = color[0].clone();
+
+                            let mut base_color = [Color::new_rgb(0, 0, 0)];
+                            self.driver.read().read(t_x, t_y, 1, 1, &mut base_color);
+                            let base_color = base_color[0].clone();
+
+                            let color = base_color.mix(&color);
+                            self.driver.write().write(t_x, t_y, 1, 1, &color);
+                        }
+                    }
                 }
             }
         }

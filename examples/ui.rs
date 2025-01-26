@@ -33,21 +33,25 @@ impl DisplayDriver for DrawBuffer {
         }
     }
 
-    fn write(&mut self, x: usize, y: usize, width: usize, height: usize, pixels: &[Color]) {
+    fn write(&mut self, x: usize, y: usize, width: usize, height: usize, color: &Color) {
         for dx in 0..width {
             for dy in 0..height {
                 let t_x = x + dx;
                 let t_y = y + dy;
-                self.buffer[t_y * WIDTH + t_x] = pixels[dy * width + dx].as_0rgb_u32();
+                self.buffer[t_y * WIDTH + t_x] = color.as_0rgb_u32();
             }
         }
+    }
+    
+    fn size(&self) -> (usize, usize) {
+        (WIDTH, HEIGHT)
     }
 }
 
 fn main() {
     let buffer = Arc::new(RwLock::new(DrawBuffer::new()));
 
-    let mut display = Display::new(buffer.clone(), WIDTH, HEIGHT);
+    let mut display = Display::new(buffer.clone());
 
     let mut window = Window::new(
         "Test - ESC to exit",
@@ -59,36 +63,26 @@ fn main() {
         panic!("{}", e);
     });
 
-    // Limit to max ~60 fps update rate
     window.set_target_fps(60);
+    
+    let window_layer = display.create_layer(100, 50, 10, 10);
+    let window_layer_mut = display.layer_mut(&window_layer).unwrap();
+    fur::window::Window::new(100, 50).draw(window_layer_mut);
 
-    let pixels = (0..100)
-        .map(|_| Color::new_argb(0xaa, 0xff, 0x00, 0x00))
-        .collect::<Vec<_>>();
-
-    let square_layer = display.create_layer(10, 10, 10, 10);
-    display
-        .layer_mut(&square_layer)
-        .unwrap()
-        .write(0, 0, 10, 10, &pixels);
-    //display.flush();
-
-    let pixels = (0..WIDTH * HEIGHT)
-        .map(|_| Color::new_argb(0, 0x00, 0x00, 0xff))
-        .collect::<Vec<_>>();
+    let color =  Color::new_argb(0, 0x00, 0x00, 0xff);
 
     let background_layer = display.create_layer(WIDTH, HEIGHT, 0, 0);
     display
         .layer_mut(&background_layer)
         .unwrap()
-        .write(0, 0, WIDTH, HEIGHT, &pixels);
+        .write(0, 0, WIDTH, HEIGHT, &color);
+    
     display.flush_all();
 
-    display.put_upper_than(&square_layer, &background_layer);
-    display.flush_area((0, 30), (0, 30));
+    display.put_upper_than(&window_layer, &background_layer);
+    display.flush_area((0, 110), (0, 60));
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
-        // We unwrap here as we want this code to exit if it fails. Real applications may want to handle this in a different way
         window
             .update_with_buffer(&buffer.read().buffer, WIDTH, HEIGHT)
             .unwrap();

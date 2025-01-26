@@ -1,22 +1,26 @@
-use spin::RwLock;
-
-use crate::display::DisplayDriver;
+use crate::{color::Color, display::DisplayDriver};
 
 pub struct Window {
-    x: usize,
-    y: usize,
     width: usize,
     height: usize,
 }
 
 impl Window {
-    pub fn new(x: usize, y: usize, width: usize, height: usize) -> Self {
-        Self { x, y, width, height }
+    pub fn new(width: usize, height: usize) -> Self {
+        Self { width, height }
     }
 }
 
 impl Window {
-    pub fn draw<T: DisplayDriver>(&self, driver: T) {
-        
+    pub fn draw<T: DisplayDriver>(&self, driver: &mut T) {
+        let titile_color = Color::new_rgb(0x1a, 0x1a, 0x1a);
+
+        driver.write(
+            0,
+            0,
+            self.width,
+            self.height,
+            &titile_color,
+        );
     }
 }

@@ -12,9 +12,11 @@ pub struct DrawBuffer {
 
 impl DrawBuffer {
     pub fn new(width: usize, height: usize, pixel_format: PixelFormat) -> Self {
-        if pixel_format == PixelFormat::U8 {
-            panic!("U8 is not supported for DrawBuffer.");
-        }
+        debug_assert_ne!(
+            pixel_format,
+            PixelFormat::U8,
+            "U8 is not supported for DrawBuffer."
+        );
         Self {
             buffer: vec![0; width * height * 4],
             width,
@@ -33,8 +35,8 @@ impl DisplayDriver for DrawBuffer {
         height: usize,
         pixels: &mut [crate::color::Color],
     ) {
-        assert!(x < self.width);
-        assert!(y < self.height);
+        debug_assert!(x < self.width);
+        debug_assert!(y < self.height);
 
         for dx in 0..width {
             for dy in 0..height {
@@ -53,19 +55,23 @@ impl DisplayDriver for DrawBuffer {
         y: usize,
         width: usize,
         height: usize,
-        pixels: &[crate::color::Color],
+        color: &Color,
     ) {
-        assert!(x < self.width);
-        assert!(y < self.height);
+        debug_assert!(x < self.width);
+        debug_assert!(y < self.height);
 
         for dx in 0..width {
             for dy in 0..height {
                 let t_x = x + dx;
                 let t_y = y + dy;
                 self.buffer[t_y * self.width + t_x] =
-                    self.pixel_format.color_as_u32(&pixels[dy * width + dx]);
+                    self.pixel_format.color_as_u32(color);
             }
         }
+    }
+
+    fn size(&self) -> (usize, usize) {
+        (self.width, self.height)
     }
 }
 
@@ -88,8 +94,8 @@ impl ColorBuffer {
 
 impl DisplayDriver for ColorBuffer {
     fn read(&self, x: usize, y: usize, width: usize, height: usize, pixels: &mut [Color]) {
-        assert!(x < self.width);
-        assert!(y < self.height);
+        debug_assert!(x < self.width);
+        debug_assert!(y < self.height);
 
         for dx in 0..width {
             for dy in 0..height {
@@ -100,16 +106,20 @@ impl DisplayDriver for ColorBuffer {
         }
     }
 
-    fn write(&mut self, x: usize, y: usize, width: usize, height: usize, pixels: &[Color]) {
-        assert!(x < self.width);
-        assert!(y < self.height);
+    fn write(&mut self, x: usize, y: usize, width: usize, height: usize, color: &Color) {
+        debug_assert!(x < self.width);
+        debug_assert!(y < self.height);
 
         for dx in 0..width {
             for dy in 0..height {
                 let t_x = x + dx;
                 let t_y = y + dy;
-                self.buffer[t_y * self.width + t_x] = pixels[dy * width + dx].clone();
+                self.buffer[t_y * self.width + t_x] = color.clone();
             }
         }
+    }
+
+    fn size(&self) -> (usize, usize) {
+        (self.width, self.height)
     }
 }

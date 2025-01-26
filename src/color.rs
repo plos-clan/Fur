@@ -17,29 +17,24 @@ pub enum Color {
 }
 
 impl Color {
-    #[inline]
     pub fn new_rgb(red: u8, green: u8, blue: u8) -> Self {
         Self::Rgb(red, green, blue)
     }
 
-    #[inline]
     pub fn new_argb(alpha: u8, red: u8, green: u8, blue: u8) -> Self {
         Self::Argb(alpha, red, green, blue)
     }
 
-    #[inline]
     pub fn new_bgra(blue: u8, green: u8, red: u8, alpha: u8) -> Self {
         Self::Bgra(blue, green, red, alpha)
     }
 
-    #[inline]
     pub fn new_u8(pallet: Pallet, index: u8) -> Self {
         Self::U8(pallet, index)
     }
 }
 
 impl Color {
-    #[inline]
     pub fn red(&self) -> u8 {
         match self {
             &Self::Argb(_, red, _, _) => red,
@@ -49,7 +44,6 @@ impl Color {
         }
     }
 
-    #[inline]
     pub fn blue(&self) -> u8 {
         match self {
             &Self::Argb(_, _, _, blue) => blue,
@@ -59,7 +53,6 @@ impl Color {
         }
     }
 
-    #[inline]
     pub fn green(&self) -> u8 {
         match self {
             &Self::Argb(_, _, green, _) => green,
@@ -69,12 +62,11 @@ impl Color {
         }
     }
 
-    #[inline]
     pub fn alpha(&self) -> u8 {
         match self {
             &Self::Argb(alpha, _, _, _) => alpha,
             &Self::Bgra(_, _, _, alpha) => alpha,
-            &Self::Rgb(_, _, _) => 0xff,
+            &Self::Rgb(_, _, _) => 0,
             Self::U8(pallet, color_index) => pallet.get_color(*color_index).alpha(),
         }
     }
@@ -129,7 +121,6 @@ impl Color {
         Self::new_argb(alpha, red, green, blue)
     }
 
-    #[inline]
     pub fn as_rgb_tuple(&self) -> (u8, u8, u8) {
         match self {
             &Self::Argb(_, red, green, blue) => (red, green, blue),
@@ -139,54 +130,46 @@ impl Color {
         }
     }
 
-    #[inline]
     pub fn as_argb_tuple(&self) -> (u8, u8, u8, u8) {
         match self {
             &Self::Argb(alpha, red, green, blue) => (alpha, red, green, blue),
             &Self::Bgra(blue, green, red, alpha) => (alpha, red, green, blue),
-            &Self::Rgb(red, green, blue) => (0xff, red, green, blue),
+            &Self::Rgb(red, green, blue) => (0, red, green, blue),
             Self::U8(pallet, color_index) => pallet.get_color(*color_index).as_argb_tuple(),
         }
     }
 
-    #[inline]
     pub fn as_bgra_tuple(&self) -> (u8, u8, u8, u8) {
         let (alpha, red, green, blue) = self.as_argb_tuple();
         (blue, green, red, alpha)
     }
 
-    #[inline]
     pub fn as_u8(&self, pallet: &Pallet) -> Option<u8> {
         pallet.try_find_color(self.clone())
     }
 }
 
 impl Color {
-    #[inline]
     pub fn as_argb_u32(&self) -> u32 {
         let (alpha, red, green, blue) = self.as_argb_tuple();
         u32::from_be_bytes([alpha, red, green, blue])
     }
 
-    #[inline]
     pub fn as_bgra_u32(&self) -> u32 {
         let (blue, green, red, alpha) = self.as_bgra_tuple();
         u32::from_be_bytes([blue, green, red, alpha])
     }
 
-    #[inline]
     pub fn as_0rgb_u32(&self) -> u32 {
         let (red, green, blue) = self.as_rgb_tuple();
         u32::from_be_bytes([0, red, green, blue])
     }
 
-    #[inline]
     pub fn as_rgb0_u32(&self) -> u32 {
         let (red, green, blue) = self.as_rgb_tuple();
         u32::from_be_bytes([red, green, blue, 0])
     }
 
-    #[inline]
     pub fn as_bgr0_u32(&self) -> u32 {
         let (red, green, blue) = self.as_rgb_tuple();
         u32::from_be_bytes([blue, green, red, 0])
@@ -194,25 +177,21 @@ impl Color {
 }
 
 impl Color {
-    #[inline]
     pub fn from_argb_u32(color: u32) -> Self {
         let [alpha, red, green, blue] = color.to_be_bytes();
         Self::new_argb(alpha, red, green, blue)
     }
 
-    #[inline]
     pub fn from_0rgb_u32(color: u32) -> Self {
         let [_, red, green, blue] = color.to_be_bytes();
         Self::new_rgb(red, green, blue)
     }
 
-    #[inline]
     pub fn from_rgb0_u32(color: u32) -> Self {
         let [red, green, blue, _] = color.to_be_bytes();
         Self::new_rgb(red, green, blue)
     }
 
-    #[inline]
     pub fn from_bgra_u32(color: u32) -> Self {
         let [blue, green, red, alpha] = color.to_be_bytes();
         Self::new_bgra(blue, green, red, alpha)
@@ -239,7 +218,6 @@ impl Default for Pallet {
 }
 
 impl Pallet {
-    #[inline]
     pub fn new() -> Self {
         Self {
             colors: core::array::from_fn(|_| Box::new(Color::new_argb(0, 0xff, 0xff, 0xff))),
@@ -248,18 +226,15 @@ impl Pallet {
 }
 
 impl Pallet {
-    #[inline]
     pub fn change_color(&mut self, index: u8, color: Color) -> &mut Self {
         self.colors[index as usize] = Box::new(color);
         self
     }
 
-    #[inline]
     pub fn get_color(&self, index: u8) -> Color {
         *self.colors[index as usize].clone()
     }
 
-    #[inline]
     pub(crate) fn try_find_color(&self, required_color: Color) -> Option<u8> {
         self.colors
             .iter()
