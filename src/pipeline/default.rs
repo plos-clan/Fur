@@ -21,15 +21,23 @@ impl Pipeline {
 
 pub struct DefaultVertexImpl {
     position: Vector4f,
-    color: DefaultColorImpl
+    pub(crate) color: DefaultColorImpl
+}
+
+impl Clone for DefaultVertexImpl {
+    fn clone(&self) -> Self {
+        Self {
+            position: self.position, color: DefaultColorImpl::raw(self.color.rgba)
+        }
+    }
 }
 
 impl Vertex for DefaultVertexImpl {
-    fn get_vertex_pos(&self) -> Vector4f {
+    fn position(&self) -> Vector4f {
         self.position
     }
 
-    fn set_vertex_pos(&mut self, value: &Vector4f) {
+    fn set_position(&mut self, value: &Vector4f) {
         self.position = *value
     }
 }
@@ -44,6 +52,12 @@ pub struct DefaultColorImpl {
     rgba: u32
 }
 
+impl Clone for DefaultColorImpl {
+    fn clone(&self) -> Self {
+        Self::raw(self.rgba)
+    }
+}
+
 impl Color for DefaultColorImpl {
     fn get_size(&self) -> usize {
         32
@@ -55,6 +69,10 @@ impl Color for DefaultColorImpl {
 }
 
 impl DefaultColorImpl {
+    pub const fn raw(rgba: u32) -> Self {
+        Self { rgba }
+    }
+
     pub const fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self { rgba: (r as u32) << 24 | (g as u32) << 16 | (b as u32) << 8 | a as u32 }
     }

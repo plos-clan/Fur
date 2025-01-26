@@ -1,7 +1,8 @@
+use crate::pipeline::default::{DefaultColorImpl, DefaultVertexImpl, Pipeline};
+use crate::pipeline::pipeline::{MatrixProperty, Vertex, VertexPass};
+use alloc::vec;
 use alloc::vec::Vec;
 use core::ops::Mul;
-use crate::pipeline::default::{DefaultColorImpl, DefaultVertexImpl, Pipeline};
-use crate::pipeline::pipeline::{Fragment, MatrixProperty, Vertex, VertexPass, Viewport};
 
 pub struct DrawCall {
     pipeline: Pipeline,
@@ -14,15 +15,103 @@ pub struct Primitive {
 }
 
 impl Primitive {
-    pub fn rasterize(self, pipeline: &Pipeline) -> Vec<Fragment<DefaultColorImpl>> {
+    pub fn rasterize(self, pipeline: &Pipeline) -> Vec<DefaultVertexImpl> {
         let vertex_pass = &pipeline.vertex_pass;
         let viewport_transform = &pipeline.viewport;
         let mut transformed_vertices =
             self.vertices.map(|vertex| { vertex_pass.clone().transform(&vertex) });
         transformed_vertices.iter_mut().for_each(|mut vertex| {
-            vertex.set_vertex_pos(&viewport_transform.clone().get_matrix().mul(vertex.get_vertex_pos()))
+            vertex.set_position(&viewport_transform.clone().get_matrix().mul(vertex.position()))
         });
 
-        todo!()
+        let a = transformed_vertices[0].clone();
+        let b = transformed_vertices[1].clone();
+        let c = transformed_vertices[2].clone();
+
+        let mut v1 = a.position().clone();
+        let mut v2 = b.position().clone();
+        let mut v3 = c.position().clone();
+
+        let max_x = [v1.x, v2.x, v3.x].iter().map(|x| { *x as i32 }).max().unwrap();
+        let max_y = [v1.y, v2.y, v3.y].iter().map(|x| { *x as i32 }).max().unwrap();
+        let min_x = [v1.x, v2.x, v3.x].iter().map(|x| { *x as i32 }).min().unwrap();
+        let min_y = [v1.y, v2.y, v3.y].iter().map(|x| { *x as i32 }).min().unwrap();
+
+        let i1 = v1.y - v2.y;
+        let i2 = v2.y - v3.y;
+        let i3 = v3.y - v1.y;
+        let j1 = v2.x - v1.x;
+        let j2 = v3.x - v2.x;
+        let j3 = v1.x - v3.x;
+        let f1 = v1.x * v2.y - v1.y * v2.x;
+        let f2 = v2.x * v3.y - v2.y * v3.x;
+        let f3 = v3.x * v1.y - v3.y * v1.x;
+        
+        let delta = f1 + f2 + f3;
+        if delta <= 0.0 { return vec!() }
+        
+        let r_delta = 1.0 / delta;
+        
+        v2 = (v2 - v1) * r_delta;
+        v3 = (v3 - v1) * r_delta;
+        let vx = i3 * v2 + i1 * v3;
+        let color_x = DefaultColorImpl::new(
+            ((b.color.red() as f32 * i3 + c.color.red() as f32 * i1) as u32) as u8,
+            ((b.color.green() as f32 * i3 + c.color.green() as f32 * i1) as u32) as u8,
+            ((b.color.blue() as f32 * i3 + c.color.blue() as f32 * i1) as u32) as u8,
+            ((b.color.alpha() as f32 * i3 + c.color.alpha() as f32 * i1) as u32) as u8,
+        );
+        let vy = j3 * v2 + j1 * v3;
+        let color_y = DefaultColorImpl::new(
+            ((b.color.red() as f32 * j3 + c.color.red() as f32 * j1) as u32) as u8,
+            ((b.color.green() as f32 * j3 + c.color.green() as f32 * j1) as u32) as u8,
+            ((b.color.blue() as f32 * j3 + c.color.blue() as f32 * j1) as u32) as u8,
+            ((b.color.alpha() as f32 * j3 + c.color.alpha() as f32 * j1) as u32) as u8,
+        );
+
+        let mut cy1 = f1;
+        let mut cy2 = f2;
+        let mut cy3 = f3;
+        let mut v0 = v1 + v2 * cy3 + v3 * cy1;
+        let mut color = DefaultColorImpl::new(
+            (a.color.red() as u32 + (b.color.red() as f32 * cy1 + c.color.red() as f32 * cy1) as u32) as u8,
+            (a.color.green() as u32 + (b.color.green() as f32 * cy1 + c.color.green() as f32 * cy1) as u32) as u8,
+            (a.color.blue() as u32 + (b.color.blue() as f32 * cy1 + c.color.blue() as f32 * cy1) as u32) as u8,
+            (a.color.alpha() as u32 + (b.color.alpha() as f32 * cy1 + c.color.alpha() as f32 * cy1) as u32) as u8,
+        );
+
+        let mut fragments: Vec<DefaultVertexImpl> = vec!();
+        for y in min_y..=max_y {
+            let mut cx1 = cy1;
+            let mut cx2 = cy2;
+            let mut cx3 = cy3;
+            for x in min_x..=max_x {
+                if cx1 >= 0.0 && cx2 >= 0.0 && cx3 >= 0.0 {
+                    fragments.push(DefaultVertexImpl::new(v0, color.clone()))
+                }
+                cx1 += i1;
+                cx2 += i2;
+                cx3 += i3;
+                v0 += vx;
+                color = DefaultColorImpl::new(
+                    color.red() + color_x.red(),
+                    color.green() + color_x.green(),
+                    color.blue() + color_x.blue(),
+                    color.alpha() + color_x.alpha()
+                )
+            }
+            cy1 += j1;
+            cy2 += j2;
+            cy3 += j3;
+            v0 += vy;
+            color = DefaultColorImpl::new(
+                color.red() + color_y.red(),
+                color.green() + color_y.green(),
+                color.blue() + color_y.blue(),
+                color.alpha() + color_y.alpha()
+            )
+        }
+
+        fragments
     }
 }

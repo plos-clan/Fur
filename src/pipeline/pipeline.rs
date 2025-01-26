@@ -7,12 +7,12 @@ pub type Vector4f = Vector4<f32>;
 pub type Vector2f = Vector2<f32>;
 pub type Vector2i = Vector2<i32>;
 
-pub trait Vertex {
-    fn get_vertex_pos(&self) -> Vector4f;
-    fn set_vertex_pos(&mut self, value: &Vector4f);
+pub trait Vertex : Clone {
+    fn position(&self) -> Vector4f;
+    fn set_position(&mut self, value: &Vector4f);
 }
 
-pub trait Color {
+pub trait Color : Clone {
     fn get_size(&self) -> usize;
     fn has_alpha(&self) -> bool;
 }
