@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use fur::pipeline::drawing::{TriangleDrawCall, TrianglePrimitive};
+use fur::pipeline::drawing::{TriangleDrawCommand, PrimitiveTriangle};
 use fur::{
     color::Color,
     display::{Display, DisplayDriver},
@@ -59,7 +59,7 @@ fn main() {
         DirectVertexPass::new(Matrix4f::new_orthographic(0.0, WIDTH as f32, HEIGHT as f32, 0.0, 100.0, 3000.0)),
         DirectFragmentPass::new(DefaultColorImpl::new(255, 255, 255, 255))
     );
-    let draw_call = TriangleDrawCall::new(pipeline, vec![TrianglePrimitive::new([
+    let draw_call = TriangleDrawCommand::new(pipeline, vec![PrimitiveTriangle::new([
         DefaultVertexImpl::new(Vector4f::new(10.0, 10.0, 0.0, 1.0), DefaultColorImpl::new(255, 0, 0, 255)),
         DefaultVertexImpl::new(Vector4f::new(10.0, 100.0, 0.0, 1.0), DefaultColorImpl::new(0, 255, 0, 255)),
         DefaultVertexImpl::new(Vector4f::new(100.0, 100.0, 0.0, 1.0), DefaultColorImpl::new(0, 0, 255, 255))

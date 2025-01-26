@@ -7,17 +7,17 @@ use nalgebra::{max, min};
 use crate::display::{DisplayDriver, DrawBuffer};
 use crate::pixel::PixelFormat;
 
-pub struct TriangleDrawCall {
-    pipeline: Pipeline,
-    primitives: Vec<TrianglePrimitive>
+pub trait DrawCommand {
+    fn draw(&self) -> (DrawBuffer, Vector4i);
 }
 
-impl TriangleDrawCall {
-    pub fn new(pipeline: Pipeline, primitives: Vec<TrianglePrimitive>) -> Self {
-        Self { pipeline, primitives }
-    }
+pub struct TriangleDrawCommand {
+    pipeline: Pipeline,
+    primitives: Vec<PrimitiveTriangle>
+}
 
-    pub fn draw(&self) -> (DrawBuffer, Vector4i) {
+impl DrawCommand for TriangleDrawCommand {
+    fn draw(&self) -> (DrawBuffer, Vector4i) {
         let mut max_x = 0;
         let mut max_y = 0;
         let mut min_x = 0;
@@ -46,12 +46,18 @@ impl TriangleDrawCall {
     }
 }
 
+impl TriangleDrawCommand {
+    pub fn new(pipeline: Pipeline, primitives: Vec<PrimitiveTriangle>) -> Self {
+        Self { pipeline, primitives }
+    }
+}
+
 /// A triangle
-pub struct TrianglePrimitive {
+pub struct PrimitiveTriangle {
     vertices: [DefaultVertexImpl; 3]
 }
 
-impl TrianglePrimitive {
+impl PrimitiveTriangle {
     pub fn new(vertices: [DefaultVertexImpl; 3]) -> Self {
         Self { vertices }
     }
