@@ -1,9 +1,11 @@
+use std::ops::Mul;
 use std::sync::Arc;
 
 use fur::{
     color::Color,
     display::{Display, DisplayDriver},
 };
+use nalgebra::*;
 use minifb::{Key, Window, WindowOptions};
 use spin::RwLock;
 

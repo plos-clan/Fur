@@ -11,4 +11,4 @@ pub mod color;
 pub mod display;
 pub mod pixel;
 pub mod window;
-mod math;
+mod pipeline;
