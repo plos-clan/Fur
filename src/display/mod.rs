@@ -1,4 +1,5 @@
 use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
+use core::assert;
 use spin::RwLock;
 
 use crate::color::Color;
@@ -51,14 +52,24 @@ pub use layer::*;
 ///                 self.data[t_y * WIDTH + t_x] = pixels[dy * width + dx].as_argb_u32();
 ///             }
 ///         }
-///     }    
-/// }
+///     }
+///
+///     fn write_at(&mut self, x: usize, y: usize, color: u32) {
+///         self.data[y * WIDTH + x] = color
+///     }
+///  }
 /// ```
 pub trait DisplayDriver {
     /// Read pixels from (x,y) to `pixels`, and you need to tell the width and the height.
     fn read(&self, x: usize, y: usize, width: usize, height: usize, pixels: &mut [Color]);
     /// The same as `read`, but it writes pixels.
     fn write(&mut self, x: usize, y: usize, width: usize, height: usize, pixels: &[Color]);
+    fn write_at(
+        &mut self,
+        x: usize,
+        y: usize,
+        color: u32
+    );
 }
 
 /// The main structure of FUR. \
@@ -98,6 +109,10 @@ impl DisplayDriver for Display {
         assert!(y < self.height);
 
         self.driver.write().write(x, y, width, height, pixels);
+    }
+
+    fn write_at(&mut self, x: usize, y: usize, color: u32) {
+        self.driver.write().write_at(x, y, color);
     }
 }
 

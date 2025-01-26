@@ -1,28 +1,69 @@
 use crate::pipeline::default::{DefaultColorImpl, DefaultVertexImpl, Pipeline};
-use crate::pipeline::pipeline::{MatrixProperty, Vertex, VertexPass};
+use crate::pipeline::pipeline::{FragmentPass, MatrixProperty, Vector4i, Vertex, VertexPass};
 use alloc::vec;
 use alloc::vec::Vec;
 use core::ops::Mul;
+use nalgebra::{max, min};
+use crate::display::{DisplayDriver, DrawBuffer};
+use crate::pixel::PixelFormat;
 
-pub struct DrawCall {
+pub struct TriangleDrawCall {
     pipeline: Pipeline,
-    primitives: Vec<Primitive>
+    primitives: Vec<TrianglePrimitive>
+}
+
+impl TriangleDrawCall {
+    pub fn new(pipeline: Pipeline, primitives: Vec<TrianglePrimitive>) -> Self {
+        Self { pipeline, primitives }
+    }
+
+    pub fn draw(&self) -> (DrawBuffer, Vector4i) {
+        let mut max_x = 0;
+        let mut max_y = 0;
+        let mut min_x = 0;
+        let mut min_y = 0;
+
+        let mut fragments: Vec<DefaultVertexImpl> = vec!();
+        self.primitives.iter().for_each(|primitive| {
+            let (fragments0, update_range) = primitive.rasterize(&self.pipeline);
+            max_x = max(max_x, update_range[2]);
+            max_y = max(max_y, update_range[3]);
+            min_x = min(min_x, update_range[0]);
+            min_y = min(min_y, update_range[1]);
+            fragments0.into_iter().for_each(|fragment| {
+                fragments.push(fragment);
+            })
+        });
+
+        let mut buffer = DrawBuffer::new((max_x - min_x) as usize, (max_y - min_y) as usize, PixelFormat::Argb);
+        fragments.iter().for_each(|fragment| {
+            let x = fragment.position().x as i32;
+            let y = fragment.position().y as i32;
+            let color = self.pipeline.fragment_pass.clone().transform(fragment);
+            buffer.write_at((x - min_x) as usize, (y - min_y) as usize, color.rgba);
+        });
+        (buffer, Vector4i::new(min_x, min_y, max_x, max_y))
+    }
 }
 
 /// A triangle
-pub struct Primitive {
+pub struct TrianglePrimitive {
     vertices: [DefaultVertexImpl; 3]
 }
 
-impl Primitive {
-    pub fn rasterize(self, pipeline: &Pipeline) -> Vec<DefaultVertexImpl> {
+impl TrianglePrimitive {
+    pub fn new(vertices: [DefaultVertexImpl; 3]) -> Self {
+        Self { vertices }
+    }
+
+    pub fn rasterize(&self, pipeline: &Pipeline) -> (Vec<DefaultVertexImpl>, Vector4i) {
         let vertex_pass = &pipeline.vertex_pass;
         let viewport_transform = &pipeline.viewport;
         let mut transformed_vertices =
-            self.vertices.map(|vertex| { vertex_pass.clone().transform(&vertex) });
-        transformed_vertices.iter_mut().for_each(|mut vertex| {
-            vertex.set_position(&viewport_transform.clone().get_matrix().mul(vertex.position()))
-        });
+            self.vertices.clone().map(|vertex| { vertex_pass.clone().transform(&vertex) });
+        // transformed_vertices.iter_mut().for_each(|mut vertex| {
+        //     vertex.set_position(&viewport_transform.clone().get_matrix().mul(vertex.position()))
+        // });
 
         let a = transformed_vertices[0].clone();
         let b = transformed_vertices[1].clone();
@@ -48,7 +89,7 @@ impl Primitive {
         let f3 = v3.x * v1.y - v3.y * v1.x;
         
         let delta = f1 + f2 + f3;
-        if delta <= 0.0 { return vec!() }
+        if delta <= 0.0 { return (vec!(), Vector4i::default()); }
         
         let r_delta = 1.0 / delta;
         
@@ -112,6 +153,6 @@ impl Primitive {
             )
         }
 
-        fragments
+        (fragments, Vector4i::new(min_x, min_y, max_x, max_y))
     }
 }

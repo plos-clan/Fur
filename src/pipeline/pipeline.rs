@@ -3,6 +3,7 @@ use alloc::vec::Vec;
 use nalgebra::{Matrix4, Vector2, Vector4};
 
 pub type Matrix4f = Matrix4<f32>;
+pub type Vector4i = Vector4<i32>;
 pub type Vector4f = Vector4<f32>;
 pub type Vector2f = Vector2<f32>;
 pub type Vector2i = Vector2<i32>;

@@ -1,13 +1,14 @@
-use std::ops::Mul;
 use std::sync::Arc;
 
+use fur::pipeline::drawing::{TriangleDrawCall, TrianglePrimitive};
 use fur::{
     color::Color,
     display::{Display, DisplayDriver},
 };
-use nalgebra::*;
 use minifb::{Key, Window, WindowOptions};
 use spin::RwLock;
+use fur::pipeline::default::{DefaultColorImpl, DefaultVertexImpl, DirectFragmentPass, DirectVertexPass, Pipeline};
+use fur::pipeline::pipeline::{Matrix4f, Vector4f, Viewport};
 
 const WIDTH: usize = 640;
 const HEIGHT: usize = 360;
@@ -44,10 +45,27 @@ impl DisplayDriver for DrawBuffer {
             }
         }
     }
+
+    fn write_at(&mut self, x: usize, y: usize, color: u32) {
+        todo!()
+    }
 }
 
 fn main() {
     let buffer = Arc::new(RwLock::new(DrawBuffer::new()));
+
+    let pipeline = Pipeline::new(
+        Viewport::new(0, 0, WIDTH, HEIGHT, 100.0, 3000.0),
+        DirectVertexPass::new(Matrix4f::new_orthographic(0.0, WIDTH as f32, HEIGHT as f32, 0.0, 100.0, 3000.0)),
+        DirectFragmentPass::new(DefaultColorImpl::new(255, 255, 255, 255))
+    );
+    let draw_call = TriangleDrawCall::new(pipeline, vec![TrianglePrimitive::new([
+        DefaultVertexImpl::new(Vector4f::new(10.0, 10.0, 0.0, 1.0), DefaultColorImpl::new(255, 0, 0, 255)),
+        DefaultVertexImpl::new(Vector4f::new(10.0, 100.0, 0.0, 1.0), DefaultColorImpl::new(0, 255, 0, 255)),
+        DefaultVertexImpl::new(Vector4f::new(100.0, 100.0, 0.0, 1.0), DefaultColorImpl::new(0, 0, 255, 255))
+    ])]);
+
+    let (regional_buffer, region) = draw_call.draw();
 
     let mut display = Display::new(buffer.clone(), WIDTH, HEIGHT);
 

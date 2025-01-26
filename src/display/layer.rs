@@ -78,4 +78,8 @@ impl DisplayDriver for LayerData {
     ) {
         self.color_buffer.write(x, y, width, height, pixels);
     }
+
+    fn write_at(&mut self, x: usize, y: usize, color: u32) {
+        todo!()
+    }
 }

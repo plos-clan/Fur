@@ -49,7 +49,7 @@ impl DefaultVertexImpl {
 }
 
 pub struct DefaultColorImpl {
-    rgba: u32
+    pub(crate) rgba: u32
 }
 
 impl Clone for DefaultColorImpl {
@@ -125,8 +125,22 @@ pub struct DirectFragmentPass {
     color: DefaultColorImpl
 }
 
+impl Clone for DirectFragmentPass {
+    fn clone(&self) -> Self {
+        Self {
+            color: self.color.clone()
+        }
+    }
+}
+
 impl FragmentPass<DefaultVertexImpl, DefaultColorImpl> for DirectFragmentPass {
     fn transform(self, vertex: &DefaultVertexImpl) -> DefaultColorImpl {
         DefaultColorImpl::new(vertex.color.red(), vertex.color.green(), vertex.color.blue(), vertex.color.alpha())
+    }
+}
+
+impl DirectFragmentPass {
+    pub const fn new(color: DefaultColorImpl) -> Self {
+        Self { color }
     }
 }

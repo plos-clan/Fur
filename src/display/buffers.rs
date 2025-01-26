@@ -53,7 +53,7 @@ impl DisplayDriver for DrawBuffer {
         y: usize,
         width: usize,
         height: usize,
-        pixels: &[crate::color::Color],
+        pixels: &[Color],
     ) {
         assert!(x < self.width);
         assert!(y < self.height);
@@ -66,6 +66,18 @@ impl DisplayDriver for DrawBuffer {
                     self.pixel_format.color_as_u32(&pixels[dy * width + dx]);
             }
         }
+    }
+
+    fn write_at(
+        &mut self,
+        x: usize,
+        y: usize,
+        color: u32
+    ) {
+        assert!(x < self.width);
+        assert!(y < self.height);
+
+        self.buffer[y * self.width + y] = color;
     }
 }
 
@@ -111,5 +123,9 @@ impl DisplayDriver for ColorBuffer {
                 self.buffer[t_y * self.width + t_x] = pixels[dy * width + dx].clone();
             }
         }
+    }
+
+    fn write_at(&mut self, x: usize, y: usize, color: u32) {
+        todo!()
     }
 }
