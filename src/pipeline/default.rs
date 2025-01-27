@@ -1,8 +1,9 @@
-use crate::pipeline::pipeline::{Color, FragmentPass, Matrix4f, Vector4f, Vertex, VertexPass, Viewport};
+use crate::pipeline::pipeline::{Color, FragmentPass, Matrix4f, PipelineState, Vector4f, Vertex, VertexPass, Viewport};
 use core::ops::Mul;
 
 pub struct Pipeline {
     pub viewport: Viewport,
+    pub pipeline_state: PipelineState,
     pub vertex_pass: DirectVertexPass,
     pub fragment_pass: DirectFragmentPass,
 }
@@ -10,12 +11,17 @@ pub struct Pipeline {
 impl Pipeline {
     pub const fn new(
         viewport: Viewport,
+        pipeline_state: PipelineState,
         vertex_pass: DirectVertexPass,
         fragment_pass: DirectFragmentPass,
     ) -> Self {
         Self {
-            viewport, vertex_pass, fragment_pass
+            viewport, pipeline_state, vertex_pass, fragment_pass
         }
+    }
+
+    pub fn set_culling(&mut self, value: bool) {
+        self.pipeline_state.culling = value;
     }
 }
 
@@ -69,6 +75,10 @@ impl Color for DefaultColorImpl {
 }
 
 impl DefaultColorImpl {
+    pub const RED: Self = Self::new(255, 0, 0, 255);
+    pub const GREEN: Self = Self::new(0, 255, 0, 255);
+    pub const BLUE: Self = Self::new(0, 0, 255, 255);
+
     pub const fn raw(rgba: u32) -> Self {
         Self { rgba }
     }
@@ -126,6 +136,10 @@ impl VertexPass<DefaultVertexImpl> for DirectVertexPass {
 impl DirectVertexPass {
     pub const fn new(translation: Matrix4f) -> Self {
         DirectVertexPass { translation }
+    }
+    
+    pub fn translation(&mut self, new: Matrix4f) {
+        self.translation = new;
     }
 }
 

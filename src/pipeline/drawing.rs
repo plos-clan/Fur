@@ -12,7 +12,7 @@ pub trait DrawCommand {
 }
 
 pub struct TriangleDrawCommand {
-    pipeline: Pipeline,
+    pub pipeline: Pipeline,
     pub primitives: Vec<PrimitiveTriangle>
 }
 
@@ -37,12 +37,17 @@ impl DrawCommand for TriangleDrawCommand {
             })
         });
 
+        let mut depth_values = vec![f32::MIN].repeat(((max_x - min_x) * (max_y - min_y)) as usize);
         let mut buffer = DrawBuffer::new((max_x - min_x) as usize, (max_y - min_y) as usize, PixelFormat::Argb);
         fragments.iter().for_each(|fragment| {
             let x = fragment.position().x as i32;
             let y = fragment.position().y as i32;
-            let color = self.pipeline.fragment_pass.clone().transform(fragment);
-            buffer.write_at((x - min_x) as usize, (y - min_y) as usize, color.get_argb());
+            if !self.pipeline.pipeline_state.depth_test 
+                || fragment.position().z > depth_values[((y - min_y) * (max_x - min_x) + (x - min_x)) as usize] {
+                depth_values[((y - min_y) * (max_x - min_x) + (x - min_x)) as usize] = fragment.position().z;
+                let color = self.pipeline.fragment_pass.clone().transform(fragment);
+                buffer.write_at((x - min_x) as usize, (y - min_y) as usize, color.get_argb());
+            }
         });
         (buffer, Vector4i::new(min_x, min_y, max_x, max_y), fragments_count)
     }
@@ -57,6 +62,12 @@ impl TriangleDrawCommand {
 /// A triangle
 pub struct PrimitiveTriangle {
     pub vertices: [DefaultVertexImpl; 3]
+}
+
+impl Clone for PrimitiveTriangle {
+    fn clone(&self) -> Self {
+        Self { vertices: self.vertices.clone() }
+    }
 }
 
 impl PrimitiveTriangle {
@@ -77,8 +88,16 @@ impl PrimitiveTriangle {
         let viewport_transform = &pipeline.viewport;
         let mut transformed_vertices =
             self.vertices.clone().map(|vertex| { vertex_pass.clone().transform(&vertex) });
+
+        let origin_v1 = transformed_vertices[0].position();
+        let origin_v2 = transformed_vertices[1].position();
+        let origin_v3 = transformed_vertices[2].position();
+
         transformed_vertices.iter_mut().for_each(|mut vertex| {
-            vertex.set_position(&viewport_transform.clone().get_matrix().mul(vertex.position()))
+            let position = vertex.position();
+            vertex.set_position(&viewport_transform.clone().get_matrix().mul(
+                Vector4f::new(position.x / position.w, position.y / position.w, position.z / position.w, 1.0)
+            ))
         });
 
         let a = transformed_vertices[0].clone();
@@ -89,25 +108,33 @@ impl PrimitiveTriangle {
         let mut v2 = b.position().clone();
         let mut v3 = c.position().clone();
 
-        let max_x = [v1.x, v2.x, v3.x].iter().map(|x| { *x as i32 }).max().unwrap();
-        let max_y = [v1.y, v2.y, v3.y].iter().map(|x| { *x as i32 }).max().unwrap();
-        let min_x = [v1.x, v2.x, v3.x].iter().map(|x| { *x as i32 }).min().unwrap();
-        let min_y = [v1.y, v2.y, v3.y].iter().map(|x| { *x as i32 }).min().unwrap();
+        let max_x = max(0, [v1.x, v2.x, v3.x].iter().map(|x| { *x as i32 }).max().unwrap());
+        let max_y = max(0, [v1.y, v2.y, v3.y].iter().map(|x| { *x as i32 }).max().unwrap());
+        let min_x = max(0, [v1.x, v2.x, v3.x].iter().map(|x| { *x as i32 }).min().unwrap());
+        let min_y = max(0, [v1.y, v2.y, v3.y].iter().map(|x| { *x as i32 }).min().unwrap());
 
         let mut fragments: Vec<DefaultVertexImpl> = vec!();
         for y in min_y..max_y {
             for x in min_x..max_x {
                 let p = (x as f32, y as f32);
                 let (u, v, w) = PrimitiveTriangle::barycentric_coords(p, v1, v2, v3);
-                // 判断点是否在三角形内
+                if y < 0 || x < 0 { continue; }
                 if u >= 0.0 && v >= 0.0 && w >= 0.0 {
-                    // 插值计算颜色
+                    // simple interpolation for color
                     let red = (u * a.color.red() as f32 + v * b.color.red() as f32 + w * c.color.red() as f32) as u8;
                     let green = (u * a.color.green() as f32 + v * b.color.green() as f32 + w * c.color.green() as f32) as u8;
                     let blue = (u * a.color.blue() as f32 + v * b.color.blue() as f32 + w * c.color.blue() as f32) as u8;
                     let alpha = (u * a.color.alpha() as f32 + v * b.color.alpha() as f32 + w * c.color.alpha() as f32) as u8;
-                    fragments.push(DefaultVertexImpl::new(Vector4f::new(p.0, p.1, 0.0, 1.0), DefaultColorImpl::new(
-                        red, green, blue, alpha
+                    // let z = u * v1.z + v * v2.z + w * v3.z;
+                    let interpolated_position = u * origin_v1 + v * origin_v2 + w * origin_v3;
+                    let z_far = pipeline.viewport.far;
+                    let z_near = pipeline.viewport.near;
+                    let z_diff = z_far - z_near;
+                    let interpolated_depth = (interpolated_position.w / interpolated_position.z) * z_far * z_near / z_diff
+                        + 0.5 * (z_far + z_near) / z_diff + 0.5;
+                    fragments.push(DefaultVertexImpl::new(
+                        Vector4f::new(p.0, p.1, interpolated_depth, 1.0),
+                        DefaultColorImpl::new(red, green, blue, alpha
                     )))
                 }
             }

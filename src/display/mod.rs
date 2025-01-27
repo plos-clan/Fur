@@ -54,6 +54,16 @@ pub use layer::*;
 ///         }
 ///     }
 ///
+///     fn write_data(&mut self, x: usize, y: usize, width: usize, height: usize, pixels: &[u32]) {
+///         for dx in 0..width {
+///             for dy in 0..height {
+///                 let t_x = dx + x;
+///                 let t_y = dy + y;
+///                 self.data[t_y * WIDTH + t_x] = pixels[dy * width + dx];
+///             }
+///         }
+///     }
+///
 ///     fn write_at(&mut self, x: usize, y: usize, color: u32) {
 ///         self.data[y * WIDTH + x] = color
 ///     }

@@ -1,12 +1,35 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use nalgebra::{Matrix4, Vector2, Vector4};
+use crate::pipeline::default::DefaultColorImpl;
 
 pub type Matrix4f = Matrix4<f32>;
 pub type Vector4i = Vector4<i32>;
 pub type Vector4f = Vector4<f32>;
 pub type Vector2f = Vector2<f32>;
 pub type Vector2i = Vector2<i32>;
+
+pub struct PipelineState {
+    pub culling: bool,
+    pub depth_test: bool,
+}
+
+impl Clone for PipelineState {
+    fn clone(&self) -> Self {
+        Self {
+            culling: self.culling,
+            depth_test: self.depth_test,
+        }
+    }
+}
+
+impl PipelineState {
+    pub fn new(culling: bool, depth_test: bool) -> Self {
+        Self {
+            culling, depth_test,
+        }
+    }
+}
 
 pub trait Vertex : Clone {
     fn position(&self) -> Vector4f;
@@ -24,12 +47,12 @@ pub struct Fragment<C: Color> {
 }
 
 pub struct Viewport {
-    x: u32,
-    y: u32,
-    width: usize,
-    height: usize,
-    near: f32,
-    far: f32,
+    pub x: u32,
+    pub y: u32,
+    pub width: usize,
+    pub height: usize,
+    pub near: f32,
+    pub far: f32,
 }
 
 pub trait Texture<C : Color> {
@@ -66,7 +89,7 @@ impl MatrixProperty for Viewport {
         Matrix4f::new(
             half_width, 0.0, 0.0, self.x as f32 + half_width,
             0.0, half_height, 0.0, self.y as f32 + half_height,
-            0.0, 0.0, half_far - half_near, half_far + half_near,
+            0.0, 0.0, 0.0, 0.0,
             0.0, 0.0, 0.0, 1.0
         )
     }
