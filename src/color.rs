@@ -13,7 +13,7 @@ pub enum Color {
     Rgb(u8, u8, u8),
     Argb(u8, u8, u8, u8),
     Bgra(u8, u8, u8, u8),
-    U8(Pallete, u8),
+    U8(Palette, u8),
 }
 
 impl Color {
@@ -29,8 +29,8 @@ impl Color {
         Self::Bgra(blue, green, red, alpha)
     }
 
-    pub fn new_u8(pallet: Pallete, index: u8) -> Self {
-        Self::U8(pallet, index)
+    pub fn new_u8(palette: Palette, index: u8) -> Self {
+        Self::U8(palette, index)
     }
 }
 
@@ -40,7 +40,7 @@ impl Color {
             &Self::Argb(_, red, _, _) => red,
             &Self::Bgra(_, _, red, _) => red,
             &Self::Rgb(red, _, _) => red,
-            Self::U8(pallet, color_index) => pallet.get_color(*color_index).red(),
+            Self::U8(palette, color_index) => palette.get_color(*color_index).red(),
         }
     }
 
@@ -49,7 +49,7 @@ impl Color {
             &Self::Argb(_, _, _, blue) => blue,
             &Self::Bgra(blue, _, _, _) => blue,
             &Self::Rgb(_, _, blue) => blue,
-            Self::U8(pallet, color_index) => pallet.get_color(*color_index).blue(),
+            Self::U8(palette, color_index) => palette.get_color(*color_index).blue(),
         }
     }
 
@@ -58,7 +58,7 @@ impl Color {
             &Self::Argb(_, _, green, _) => green,
             &Self::Bgra(_, green, _, _) => green,
             &Self::Rgb(_, green, _) => green,
-            Self::U8(pallet, color_index) => pallet.get_color(*color_index).green(),
+            Self::U8(palette, color_index) => palette.get_color(*color_index).green(),
         }
     }
 
@@ -67,7 +67,7 @@ impl Color {
             &Self::Argb(alpha, _, _, _) => alpha,
             &Self::Bgra(_, _, _, alpha) => alpha,
             &Self::Rgb(_, _, _) => 0,
-            Self::U8(pallet, color_index) => pallet.get_color(*color_index).alpha(),
+            Self::U8(palette, color_index) => palette.get_color(*color_index).alpha(),
         }
     }
 }
@@ -126,7 +126,7 @@ impl Color {
             &Self::Argb(_, red, green, blue) => (red, green, blue),
             &Self::Bgra(blue, green, red, _) => (red, green, blue),
             &Self::Rgb(red, green, blue) => (red, green, blue),
-            Self::U8(pallet, color_index) => pallet.get_color(*color_index).as_rgb_tuple(),
+            Self::U8(palette, color_index) => palette.get_color(*color_index).as_rgb_tuple(),
         }
     }
 
@@ -135,7 +135,7 @@ impl Color {
             &Self::Argb(alpha, red, green, blue) => (alpha, red, green, blue),
             &Self::Bgra(blue, green, red, alpha) => (alpha, red, green, blue),
             &Self::Rgb(red, green, blue) => (0, red, green, blue),
-            Self::U8(pallet, color_index) => pallet.get_color(*color_index).as_argb_tuple(),
+            Self::U8(palette, color_index) => palette.get_color(*color_index).as_argb_tuple(),
         }
     }
 
@@ -144,8 +144,8 @@ impl Color {
         (blue, green, red, alpha)
     }
 
-    pub fn as_u8(&self, pallet: &Pallete) -> Option<u8> {
-        pallet.try_find_color(self.clone())
+    pub fn as_u8(&self, palette: &Palette) -> Option<u8> {
+        palette.try_find_color(self.clone())
     }
 }
 
@@ -204,28 +204,30 @@ impl PartialEq for Color {
     }
 }
 
-/// This is the pallet for 256 color mode. \
+/// This is the palette for 256 color mode. \
 /// It stores 256 colors, and you can use them through the index.
 #[derive(Debug, Clone)]
-pub struct Pallete {
+pub struct Palette {
     colors: Arc<[Color; 256]>,
 }
 
-impl Default for Pallete {
+impl Default for Palette {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl Pallete {
+impl Palette {
     pub fn new() -> Self {
         Self {
-            colors: Arc::new(core::array::from_fn(|_| Color::new_argb(0, 0xff, 0xff, 0xff))),
+            colors: Arc::new(core::array::from_fn(|_| {
+                Color::new_argb(0, 0xff, 0xff, 0xff)
+            })),
         }
     }
 }
 
-impl Pallete {
+impl Palette {
     pub fn change_color(&mut self, index: u8, color: Color) -> &mut Self {
         Arc::make_mut(&mut self.colors)[index as usize] = color;
         self

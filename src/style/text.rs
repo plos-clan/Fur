@@ -3,6 +3,7 @@ use cosmic_text::{Buffer, FontSystem, Metrics};
 
 use crate::{color::Color, display::DisplayDriver};
 
+#[allow(unused)]
 pub struct TextBuilder {
     font_system: FontSystem,
     metrics: Metrics,
@@ -28,17 +29,17 @@ impl TextBuilder {
         self.position = position;
         self
     }
-    
+
     pub fn x(&mut self, x: usize) -> &mut Self {
         self.position.0 = x;
         self
     }
-    
+
     pub fn y(&mut self, y: usize) -> &mut Self {
         self.position.1 = y;
         self
     }
-    
+
     pub fn font_size(&mut self, font_size: f32) -> &mut Self {
         self.metrics.font_size = font_size;
         self
@@ -59,7 +60,7 @@ impl TextBuilder {
 }
 
 impl TextBuilder {
-    pub fn draw<T: DisplayDriver>(&mut self, driver: &mut T) {
-        let font_buffer = Buffer::new(&mut self.font_system, self.metrics);
+    pub fn draw<T: DisplayDriver>(&mut self, _driver: &mut T) {
+        let _font_buffer = Buffer::new(&mut self.font_system, self.metrics);
     }
 }

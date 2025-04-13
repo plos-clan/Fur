@@ -11,7 +11,7 @@ const WIDTH: usize = 640;
 const HEIGHT: usize = 360;
 
 struct DrawBuffer {
-    buffer: [u32;WIDTH * HEIGHT],
+    buffer: [u32; WIDTH * HEIGHT],
 }
 
 impl DrawBuffer {
@@ -59,9 +59,7 @@ fn main() {
         HEIGHT,
         WindowOptions::default(),
     )
-    .unwrap_or_else(|e| {
-        panic!("{}", e);
-    });
+    .unwrap();
 
     window.set_target_fps(60);
 
@@ -69,8 +67,7 @@ fn main() {
     let window_layer_mut = display.layer_mut(&window_layer).unwrap();
     fur::window::WindowBuilder::new(100, 50).draw(window_layer_mut);
 
-    let color = Color::new_argb(0, 0x00, 0x00, 0xff);
-
+    let color = Color::new_argb(0, 0x11, 0x45, 0x14);
     let background_layer = display.create_layer(WIDTH, HEIGHT, 0, 0);
     display
         .layer_mut(&background_layer)
